@@ -1,0 +1,6 @@
+.venv
+.idea
+__pycache__
+*.pyc
+dist
+src/ci_cd_apier.egg-info
