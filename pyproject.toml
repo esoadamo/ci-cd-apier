@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ci-cd-apier"
-version = "0.9.91"
+version = "0.9.99"
 description = "ci-cd-APIer -- Flask-like API framework for GitLab CI/CD pipelines"
 authors = [
     { name = "Adam Hlavacek", email = "git@adamhlavacek.com" }
@@ -16,7 +16,8 @@ classifiers = [
 ]
 readme = "README.md"
 dependencies = [
-    "ssage==1.5.0"
+    "ssage==1.5.0",
+    "Jinja2==3.1.5"
 ]
 
 
