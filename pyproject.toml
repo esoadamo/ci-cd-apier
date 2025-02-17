@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ci-cd-apier"
-version = "0.9.99"
+version = "1.0.0"
 description = "ci-cd-APIer -- Flask-like API framework for GitLab CI/CD pipelines"
 authors = [
     { name = "Adam Hlavacek", email = "git@adamhlavacek.com" }

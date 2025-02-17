@@ -5,14 +5,16 @@ class Apier {
      * @param gitlab_pipeline_endpoint {string} - GitLab pipeline endpoint
      * @param gitlab_token {string} - GitLab pipeline token
      * @param gitlab_branch {string} - GitLab branch, default is 'main'
+     * @param max_data_size {number} - Maximum data size for a single request, default is 100 kilobytes
      */
-    constructor(age_ci_public_key, gitlab_pipeline_endpoint, gitlab_token, gitlab_branch = 'main') {
+    constructor(age_ci_public_key, gitlab_pipeline_endpoint, gitlab_token, gitlab_branch = 'main', max_data_size = 102400) {
         this.__loaded = false;
         this.__age_local = null;
         this.__age_ci_public_key = age_ci_public_key;
         this.__pipeline_endpoint = gitlab_pipeline_endpoint;
         this.__gitlab_token = gitlab_token;
         this.__gitlab_branch = gitlab_branch;
+        this.__max_data_size = max_data_size;
     }
 
     /**
@@ -40,21 +42,42 @@ class Apier {
             throw new Error(encryptedRequestData.error);
         }
 
-        const formData = new FormData();
-        formData.append('token', this.__gitlab_token);
-        formData.append('ref', this.__gitlab_branch);
-        formData.append('variables[APIER_DATA]', encryptedRequestData.output);
-
-        const req = await fetch(this.__pipeline_endpoint, {
-            method: 'POST',
-            body: formData
-        });
-
-        if (!req.ok) {
-            throw new Error(`Failed to send request to ${this.__pipeline_endpoint}`);
+        /** @type {string} */
+        const encryptedData = encryptedRequestData.output;
+        const dataRequests = [];
+        const maxDataSize = this.__max_data_size - 100;  // 100 bytes for metadata
+        if (encryptedData.length < maxDataSize) {
+            dataRequests.push(encryptedData);
+        } else {
+            const parts = Math.ceil(encryptedData.length / maxDataSize);
+            for (let i = 0; i < parts; i++) {
+                const part= encryptedData.substring(i * maxDataSize, (i + 1) * maxDataSize);
+                dataRequests.push(`MP_${requestId}_${i + 1}_${parts}_${part}`);
+            }
         }
 
-        const responseURL = `responses/${requestId}.txt`;
+        // Send all parts to the pipeline, one by one. Only one if the data is small enough
+        for (let i = 0; i < dataRequests.length; i++) {
+            const dataRequest = dataRequests[i];
+            const formData = new FormData();
+            formData.append('token', this.__gitlab_token);
+            formData.append('ref', this.__gitlab_branch);
+            formData.append('variables[APIER_DATA]', dataRequest);
+
+            const req = await fetch(this.__pipeline_endpoint, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!req.ok) {
+                throw new Error(`Failed to send request to ${this.__pipeline_endpoint}`);
+            }
+            if (i < dataRequests.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 1000 + Math.floor(Math.random() * 1000)));
+            }
+        }
+
+        const responseURL = `apier-responses/${requestId}.txt`;
 
         return new Promise((resolve, reject) => {
             let responseTimeout = null;
@@ -83,7 +106,7 @@ class Apier {
                         } else {
                             scheduleResponseCheck();
                         }
-                    }, (Date.now() / 1000 - dateStart) < 45 ? 15000 : 3500);
+                    }, (Date.now() / 1000 - dateStart) < (dataRequests.length * 45) ? 15000 : 3500);
             }
             scheduleResponseCheck();
 
@@ -92,7 +115,7 @@ class Apier {
                     clearTimeout(responseCheck);
                 }
                 reject(new Error(`Request timeout for ${responseURL}`));
-            }, timeout * 1000);
+            }, timeout * dataRequests.length * 1000);
         });
     }
 

@@ -48,22 +48,29 @@ class APIER:
                  dir_webpage: Optional[Path] = None,
                  dir_responses: Optional[Path] = None,
                  dir_templates: Optional[Path] = None,
-                 dir_static: Optional[Path] = None):
+                 dir_static: Optional[Path] = None,
+                 dir_requests: Optional[Path] = None,
+                 support_large_requests: bool = True
+                 ):
         """
         Initialize the APIER object
         :param age_key: local secret key
-        :param dir_webpage: directory to store all webpages
-        :param dir_responses: directory to store responses, defaults to responses in webpage or the current directory
+        :param dir_webpage: directory to store all webpages, defaults to public in the current directory
+        :param dir_responses: directory to store responses, defaults to apier-responses in webpage or the current directory
         :param dir_templates: directory to store templates, defaults to templates in the current directory
         :param dir_static: directory to store static files, defaults to static in the current directory
+        :param dir_requests: directory to store larget requests, defaults to apier-requests in the current directory
+        :param support_large_requests: if True, support large requests
         """
         self.__decryptor = SSAGE(age_key)
         self.__dir_responses = dir_responses
         self.__dir_webpage = dir_webpage or Path(getcwd()) / "public"
         if not self.__dir_responses:
-            self.__dir_responses = self.__dir_webpage / "responses"
+            self.__dir_responses = self.__dir_webpage / "apier-responses"
         self.__dir_templates = dir_templates or Path(getcwd()) / "templates"
         self.__dir_static = dir_static or Path(getcwd()) / "static"
+        self.__dir_requests = dir_requests or Path(getcwd()) / "apier-requests"
+        self.__support_large_requests = support_large_requests
         self.__paths: Dict[APIEREndpointMode, Dict[str, Callable[[any], str]]] = {
             APIEREndpointMode.API: {},
             APIEREndpointMode.TEMPLATE: {},
@@ -127,6 +134,7 @@ class APIER:
         try:
             if delete_old_responses:
                 self.purge_old_responses()
+                self.purge_old_requests()
             if build_static_pages:
                 self.build_static_pages()
             self.__dir_responses.mkdir(parents=True, exist_ok=True)
@@ -136,12 +144,63 @@ class APIER:
                     print('[*] No request to process')
                     return
                 raise APIERClientError(f"Missing request data: {data_env_name}")
+            if data.startswith('MP_'):
+                if not self.__support_large_requests:
+                    raise APIERClientError("Large requests not supported")
+                data = self.process_large_request(data)
+                if data is None:
+                    return
             self.process_single_request(data)
         except Exception:
             if always_success:
                 print_exc()
             else:
                 raise
+
+    def process_large_request(self, data_part: str) -> Optional[str]:
+        """
+        Process a large request and combine all parts if available, otherwise save the part
+        :param data_part: raw request data part
+        :return: combined request data if all parts are available, None otherwise
+        """
+        # data format is `MP_${requestId}_${part_index}_${parts_total}_${part_data}`
+        parts = data_part.split('_')
+        try:
+            if parts[0] != 'MP':
+                raise ValueError("Invalid prefix")
+            request_id = parts[1]
+            part_index = int(parts[2])
+            parts_total = int(parts[3])
+            part_data = parts[4]
+        except (IndexError, ValueError):
+            raise APIERClientError("Invalid large request data")
+
+        print(f'[*] Combining large request {request_id} part {part_index}/{parts_total}')
+        path_part = self.__dir_requests / f"{request_id}_{part_index}_{parts_total}.txt"
+        path_part.parent.mkdir(parents=True, exist_ok=True)
+        path_part.write_text(json.dumps({
+            "id": request_id,
+            "index": part_index,
+            "total": parts_total,
+            "time": datetime.now(tz=timezone.utc).isoformat(),
+            "data": part_data
+        }))
+
+        # Check if all parts are available
+        for i in range(parts_total):
+            path = self.__dir_requests / f"{request_id}_{i + 1}_{parts_total}.txt"
+            if not path.exists():
+                print(f'[*] Large request {request_id} part {i + 1}/{parts_total} missing')
+                return None
+
+        # Combine all parts
+        data = ''
+        for i in range(parts_total):
+            path = self.__dir_requests / f"{request_id}_{i + 1}_{parts_total}.txt"
+            data += json.loads(path.read_text())["data"]
+            path.unlink(missing_ok=True)
+
+        return data
 
     def build_static_pages(self) -> bool:
         """
@@ -245,6 +304,8 @@ class APIER:
         :param minutes: minutes to keep the response
         :return: None
         """
+        if not self.__dir_responses.exists():
+            return
         now = datetime.now(tz=timezone.utc)
         for file in self.__dir_responses.glob("*.txt"):
             try:
@@ -255,6 +316,26 @@ class APIER:
                     file.unlink()
             except Exception as e:
                 print(f'[!] Error while purging response {file.name}: {e}')
+                file.unlink()
+
+    def purge_old_requests(self, minutes: int = 15) -> None:
+        """
+        Purge old requests from the requests directory
+        :param minutes: minutes to keep the request
+        :return: None
+        """
+        if not self.__dir_requests.exists():
+            return
+        now = datetime.now(tz=timezone.utc)
+        for file in self.__dir_requests.glob("*.txt"):
+            try:
+                content = json.loads(file.read_text())
+                date = datetime.fromisoformat(content["time"])
+                if (now - date).total_seconds() / 60 > minutes:
+                    print(f'[*] Purging old request {file.name}')
+                    file.unlink()
+            except Exception as e:
+                print(f'[!] Error while purging request {file.name}: {e}')
                 file.unlink()
 
     @property
