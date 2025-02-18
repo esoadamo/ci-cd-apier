@@ -36,6 +36,7 @@ class APIERServerError(Exception):
         super().__init__(message, parent)
         self.request_id = request_id
         self.request_age_public_key = request_age_public_key
+        self.parent = parent
 
 
 class APIER:
