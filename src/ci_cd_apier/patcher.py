@@ -1,14 +1,27 @@
 import re
+import json
 from pathlib import Path
 from shutil import copytree
+from typing import Optional, TypedDict
 
 DIR_JS = Path(__file__).parent / "js"
 
 
-def patch_html(file_html: Path) -> None:
+class APIERClientConfig(TypedDict):
+    """
+    Configuration for the client
+    """
+    age_public_key: str
+    gitlab_pipeline_endpoint: str
+    gitlab_token: str
+    gitlab_branch: Optional[str]
+
+
+def patch_html(file_html: Path, client_config: Optional[APIERClientConfig] = None) -> None:
     """
     Patch the HTML file with the required JS files and copies the apier directory
     :param file_html: HTML file to patch
+    :param client_config: Optional client configuration used for automatic client creation
     :return: None
     """
     content = file_html.read_text()
@@ -19,3 +32,6 @@ def patch_html(file_html: Path) -> None:
     if dir_apier_target.exists():
         return
     copytree(DIR_JS, dir_apier_target)
+    file_client_config = dir_apier_target / "client.json"
+    if client_config is not None and not file_client_config.exists():
+        file_client_config.write_text(json.dumps(client_config))

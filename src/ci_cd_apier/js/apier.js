@@ -155,4 +155,21 @@ class Apier {
             return uuidv4();
         }
     }
+
+    /**
+     * Initialize Apier from well-known config file
+     * @returns {Promise<Apier>} - Apier instance
+     */
+    static auto() {
+        return fetch('apier/client.json').then(
+            async (response) => {
+                if (!response.ok) {
+                    throw new Error(`Failed to load apier/client.json`);
+                }
+                /** @type {{age_public_key: string, gitlab_pipeline_endpoint: string, gitlab_token: string, gitlab_branch: string | null}} */
+                const config = await response.json();
+                return new Apier(config.age_public_key, config.gitlab_pipeline_endpoint, config.gitlab_token, config.gitlab_branch || undefined);
+            }
+        )
+    }
 }

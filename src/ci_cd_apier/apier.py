@@ -2,7 +2,7 @@ import json
 from enum import Enum
 from uuid import UUID
 from pathlib import Path
-from typing import Dict, Callable, Optional
+from typing import Dict, Callable, Optional, TypedDict
 from os import getcwd, environ
 from traceback import print_exc
 from datetime import datetime, timezone
@@ -12,7 +12,7 @@ from ssage import SSAGE
 import jinja2
 from jinja2.sandbox import SandboxedEnvironment
 
-from .patcher import patch_html
+from .patcher import patch_html, APIERClientConfig
 
 
 class APIEREndpointMode(Enum):
@@ -39,6 +39,15 @@ class APIERServerError(Exception):
         self.parent = parent
 
 
+class APIERGitlabClientConfig(TypedDict):
+    """
+    Configuration for the client
+    """
+    gitlab_pipeline_endpoint: str
+    gitlab_token: str
+    gitlab_branch: Optional[str]
+
+
 class APIER:
     """
     APIER class to have Flask-like routing for CI/CD requests
@@ -51,7 +60,8 @@ class APIER:
                  dir_templates: Optional[Path] = None,
                  dir_static: Optional[Path] = None,
                  dir_requests: Optional[Path] = None,
-                 support_large_requests: bool = True
+                 support_large_requests: bool = True,
+                 client_config: Optional[APIERGitlabClientConfig] = None
                  ):
         """
         Initialize the APIER object
@@ -72,6 +82,12 @@ class APIER:
         self.__dir_static = dir_static or Path(getcwd()) / "static"
         self.__dir_requests = dir_requests or Path(getcwd()) / "apier-requests"
         self.__support_large_requests = support_large_requests
+        self.__client_config: APIERClientConfig = {
+            "age_public_key": self.public_key,
+            "gitlab_pipeline_endpoint": client_config["gitlab_pipeline_endpoint"],
+            "gitlab_token": client_config["gitlab_token"],
+            "gitlab_branch": client_config["gitlab_branch"]
+        } if client_config else {}
         self.__paths: Dict[APIEREndpointMode, Dict[str, Callable[[any], str]]] = {
             APIEREndpointMode.API: {},
             APIEREndpointMode.TEMPLATE: {},
@@ -229,7 +245,7 @@ class APIER:
                 path_response = self.__dir_webpage / route_path
                 path_response.write_text(response)
                 if route_path.lower().endswith('.html'):
-                    patch_html(path_response)
+                    patch_html(path_response, self.__client_config)
 
         return True
 
