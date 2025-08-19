@@ -130,7 +130,6 @@ class ApierClient:
 
         # Wait for response
         response_url = f"{self.pages_url}/apier-responses/{request_id}.txt"
-        print(f"{response_url=}")
         return await self.__wait_for_response(
             response_url,
             timeout,
