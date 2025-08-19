@@ -35,3 +35,5 @@ def endpoint_sum(data: list[int]) -> str:
 
 app.process_requests()
 ```
+
+There also exists Python client for APIer in `ci_cd_apier.client` package.
