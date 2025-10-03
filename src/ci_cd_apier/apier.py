@@ -87,7 +87,7 @@ class APIER:
             "gitlab_pipeline_endpoint": client_config["gitlab_pipeline_endpoint"],
             "gitlab_token": client_config["gitlab_token"],
             "gitlab_branch": client_config["gitlab_branch"]
-        } if client_config else {}
+        } if client_config else APIERClientConfig(age_public_key=self.public_key)
         self.__paths: Dict[APIEREndpointMode, Dict[str, Callable[[any], str]]] = {
             APIEREndpointMode.API: {},
             APIEREndpointMode.TEMPLATE: {},
@@ -243,6 +243,8 @@ class APIER:
                     route_path = f"{route_path}.html"
 
                 path_response = self.__dir_webpage / route_path
+                path_response.relative_to(self.__dir_webpage)
+                path_response.parent.mkdir(parents=True, exist_ok=True)
                 path_response.write_text(response)
                 if route_path.lower().endswith('.html'):
                     patch_html(path_response, self.__client_config)

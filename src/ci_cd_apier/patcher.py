@@ -2,7 +2,7 @@ import re
 import json
 from pathlib import Path
 from shutil import copytree
-from typing import Optional, TypedDict
+from typing import Optional, TypedDict, NotRequired
 
 DIR_JS = Path(__file__).parent / "js"
 
@@ -11,10 +11,10 @@ class APIERClientConfig(TypedDict):
     """
     Configuration for the client
     """
-    age_public_key: str
-    gitlab_pipeline_endpoint: str
-    gitlab_token: str
-    gitlab_branch: Optional[str]
+    age_public_key: NotRequired[str]
+    gitlab_pipeline_endpoint: NotRequired[str]
+    gitlab_token: NotRequired[str]
+    gitlab_branch: NotRequired[Optional[str]]
 
 
 def patch_html(file_html: Path, client_config: Optional[APIERClientConfig] = None) -> None:
