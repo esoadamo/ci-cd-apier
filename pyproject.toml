@@ -4,19 +4,19 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ci-cd-apier"
-version = "1.2.2"
+version = "2.0.0"
 description = "ci-cd-APIer -- Flask-like API framework for GitLab CI/CD pipelines"
 authors = [
     { name = "Adam Hlavacek", email = "git@adamhlavacek.com" }
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Operating System :: OS Independent",
 ]
 readme = "README.md"
 dependencies = [
-    "ssage==1.5.0",
+    "ssage==1.5.1",
     "Jinja2==3.1.6"
 ]
 
@@ -27,3 +27,12 @@ Issues = "https://github.com/esoadamo/ci-cd-apier/issues"
 
 [tool.setuptools]
 include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+ci_cd_apier = [
+    "js/**",
+    "js/agewasm/**"
+]
