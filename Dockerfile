@@ -1,5 +1,5 @@
 # Stage 1: Build the module
-FROM python:alpine AS builder
+FROM python:3.13-alpine AS builder
 
 WORKDIR /build
 
@@ -13,7 +13,7 @@ COPY . .
 RUN python -m build
 
 # Stage 2: Runtime environment
-FROM python:alpine
+FROM python:3.13-alpine
 
 # Set environment variables to prevent Python from writing pyc files and buffering stdout
 ENV PYTHONDONTWRITEBYTECODE=1
