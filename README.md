@@ -4,6 +4,20 @@ APIer is a library that allows you to launch its backend code with Flask-like sy
 All the requests and responses are processed with e2e encryption using [age](https://age-encryption.org/),
 so nobody has access to the data except the sender (web page) and the receiver (GitLab job in memory).
 
+## Installation
+
+This project uses uv for dependency management and local development.
+
+```bash
+uv sync
+```
+
+If you want to run a one-off command inside the project environment:
+
+```bash
+uv run python -c "import ci_cd_apier; print('ci-cd-apier ready')"
+```
+
 ## Usage example
 
 **To see the full example, take a look at the [example repository](https://gitlab.com/esoadamo/ci-cd-apier-example/).**
