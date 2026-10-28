@@ -8,7 +8,10 @@ from typing import Any
 try:
     import aiohttp
 except ImportError:
-    raise ImportError("aiohttp is required for ApierClient. Please install it with 'pip install aiohttp'.")
+    raise ImportError(
+        "aiohttp is required for ApierClient. "
+        "Install client dependencies with 'pip install \"ci-cd-apier[client]\"'."
+    )
 from ssage import SSAGE
 from ssage.backend import SSAGEBackendNative, SSAGEBackendBase
 
@@ -109,7 +112,7 @@ class ApierClient:
                 form_data = aiohttp.FormData()
                 form_data.add_field('token', self.__gitlab_token)
                 form_data.add_field('ref', self.__gitlab_branch)
-                form_data.add_field('variables[APIER_DATA]', data_request)
+                form_data.add_field('inputs[APIER_DATA]', data_request)
 
                 try:
                     async with session.post(

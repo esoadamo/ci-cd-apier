@@ -18,6 +18,18 @@ If you want to run a one-off command inside the project environment:
 uv run python -c "import ci_cd_apier; print('ci-cd-apier ready')"
 ```
 
+To include Python client dependencies in the local development environment:
+
+```bash
+uv sync --group client
+```
+
+For PyPI installs, use the `client` extra:
+
+```bash
+pip install "ci-cd-apier[client]"
+```
+
 ## Usage example
 
 **To see the full example, take a look at the [example repository](https://gitlab.com/esoadamo/ci-cd-apier-example/).**

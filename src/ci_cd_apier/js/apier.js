@@ -62,7 +62,7 @@ class Apier {
             const formData = new FormData();
             formData.append('token', this.__gitlab_token);
             formData.append('ref', this.__gitlab_branch);
-            formData.append('variables[APIER_DATA]', dataRequest);
+            formData.append('inputs[APIER_DATA]', dataRequest);
 
             const req = await fetch(this.__pipeline_endpoint, {
                 method: 'POST',
